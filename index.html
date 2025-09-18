@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trip Splitter</title>
+  <link rel="stylesheet" href="style.css" />
+  <meta name="theme-color" content="#667eea" />
+  <meta name="description" content="Trip expense splitter with people, expenses, dark mode, persistence and an assistant to help settle debts." />
+</head>
+<body>
+  <div id="loader" class="loader" aria-live="polite" aria-busy="true" style="display:none">
+    <div class="loader-circle" aria-hidden="true"></div>
+    <div class="loader-circle" aria-hidden="true"></div>
+    <div class="loader-circle" aria-hidden="true"></div>
+  </div>
+
+  <aside id="sidebar" class="sidebar" aria-label="Sidebar navigation">
+    <button type="button" aria-label="Close sidebar" onclick="closeSidebar()">×</button>
+    <ul>
+      <li tabindex="0" onclick="showTrips()">Trips</li>
+      <li tabindex="0" onclick="showCalculator()">Calculator</li>
+      <li tabindex="0" onclick="showAbout()">About</li>
+    </ul>
+  </aside>
+
+  <header class="top">
+    <div class="left">
+      <button type="button" aria-label="Open menu" onclick="openSidebar()">☰</button>
+      <h2>Trip Splitter</h2>
+    </div>
+
+    <div class="controls">
+      <label class="visually-hidden" for="currency">Currency</label>
+      <select id="currency" onchange="changeCurrency()" aria-label="Select currency">
+        <option value="INR" selected>INR (₹)</option>
+        <option value="USD">USD ($)</option>
+        <option value="EUR">EUR (€)</option>
+      </select>
+
+      <button id="theme-toggle" title="Toggle dark mode" onclick="toggleDarkMode()" aria-pressed="false">🌙</button>
+    </div>
+  </header>
+
+  <!-- Login Page -->
+  <main id="login" class="page card" role="main">
+    <h3>Login</h3>
+    <p id="msg" aria-live="assertive"></p>
+    <label for="user">Username</label>
+    <input id="user" autocomplete="username" placeholder="user" />
+    <label for="pass">Password</label>
+    <input id="pass" type="password" autocomplete="current-password" placeholder="pass" />
+    <div class="row">
+      <button type="button" onclick="login()">Sign in</button>
+      <button type="button" class="secondary" onclick="quickGuest()">Continue as Guest</button>
+    </div>
+  </main>
+
+  <!-- Trips Page -->
+  <section id="trips" class="page hide">
+    <div class="card">
+      <div class="section-head">
+        <h3>Trips</h3>
+        <div class="actions">
+          <button type="button" onclick="showForm()">New trip</button>
+          <button type="button" onclick="downloadPdf()">Export</button>
+          <button type="button" onclick="exportJson()" title="Export current trips as JSON">JSON</button>
+        </div>
+      </div>
+
+      <div id="form" class="card hide" aria-live="polite">
+        <label for="tripname">Trip name</label>
+        <input id="tripname" placeholder="e.g., Goa 2025" />
+        <div class="row">
+          <button type="button" onclick="addTrip()">Add</button>
+          <button type="button" class="secondary" onclick="hideForm()">Cancel</button>
+        </div>
+      </div>
+
+      <ul id="triplist" aria-label="Trip list"></ul>
+      <p class="empty" id="trips-empty">No trips yet. Create one to get started.</p>
+    </div>
+
+    <div id="trip-detail" class="card hide" aria-live="polite">
+      <div class="detail-head row" style="justify-content:space-between; align-items:center;">
+        <h3 id="trip-title">Trip</h3>
+        <div>
+          <button class="secondary" onclick="copyShareable()">Share (clipboard)</button>
+          <button class="secondary" onclick="resetTrip()">Reset</button>
+        </div>
+      </div>
+
+      <div class="card-sub">
+        <h4>People</h4>
+        <div class="row">
+          <input id="person-input" placeholder="Add person name" />
+          <button type="button" onclick="addPerson()">Add</button>
+        </div>
+        <ul id="people-list"></ul>
+        <p class="empty" id="people-empty">No people added.</p>
+      </div>
+
+      <div class="card-sub">
+        <h4>Expenses</h4>
+        <div class="row grid-3">
+          <input id="expense-desc" placeholder="Description" />
+          <input id="expense-amount" type="number" min="0" step="0.01" placeholder="Amount" />
+          <select id="expense-payer" aria-label="Expense payer">
+            <option value="">Payer</option>
+          </select>
+          <div class="row">
+            <button type="button" onclick="addExpense()">Add</button>
+            <button type="button" class="secondary" onclick="splitEquallyForLast()">Split equally</button>
+          </div>
+        </div>
+        <ul id="expense-list"></ul>
+        <p class="empty" id="expense-empty">No expenses yet.</p>
+      </div>
+
+      <div id="result" class="card-sub">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <div>
+            <label for="calcCurrency">Currency</label>
+            <select id="calcCurrency" onchange="changeCurrency()">
+              <option value="INR">INR (₹)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+            </select>
+          </div>
+          <div id="summary-actions" class="row">
+            <button class="secondary" onclick="showSuggestedPayments()">Suggested payments</button>
+            <button class="secondary" onclick="findOutliers()">Flag outliers</button>
+          </div>
+        </div>
+
+        <div id="summary" class="summary-box" aria-live="polite"></div>
+      </div>
+
+      <div id="assistant" class="card-sub">
+        <h4>Assistant (local)</h4>
+        <p class="text-muted">A small local assistant that analyzes the trip and suggests simple actions — no internet required.</p>
+        <div class="row" style="gap:6px;">
+          <button onclick="assistantExplainSplit()">Explain split</button>
+          <button onclick="showSuggestedPayments()">Settle debts</button>
+          <button onclick="findOutliers()">Find outliers</button>
+          <button onclick="optimizePayments()">Optimize payments</button>
+        </div>
+
+        <div id="assistant-output" class="assistant-output" aria-live="polite"></div>
+
+        <div class="assistant-chat row" style="margin-top:10px;">
+          <input id="assistant-input" placeholder="Ask assistant: e.g., who owes whom?" />
+          <button onclick="assistantHandleInput()">Ask</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Calculator Page -->
+  <section id="calculator" class="page hide">
+    <div class="card">
+      <h3>Quick Calculator</h3>
+      <p class="text-muted">Add people and expenses in a selected trip, then view split below.</p>
+      <div id="calc-display" class="success"></div>
+    </div>
+  </section>
+
+  <!-- About Page -->
+  <section id="about" class="page hide">
+    <div class="card">
+      <h3>About</h3>
+      <p>This tool helps split trip expenses fairly among participants. Use the export feature to save a PDF or TXT breakdown. Dark mode and an on-device assistant are included.</p>
+      <p class="text-muted">Assistant notes: it is rule-based and runs locally — it's not connected to any external AI service.</p>
+    </div>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>
